@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getJobSummary } from './jobs';
+import { getJobSummary, getOriginalVideoPath } from './jobs';
 import { getPool } from './db';
 
 describe('getJobSummary', () => {
@@ -46,5 +46,42 @@ describe('getJobSummary', () => {
   it('devuelve null si el job no existe', async () => {
     const summary = await getJobSummary('00000000-0000-0000-0000-000000000000');
     expect(summary).toBeNull();
+  });
+
+  it('incluye el nombre del archivo original en el resumen', async () => {
+    const summary = await getJobSummary(jobId);
+    expect(summary!.videoFilename).toBe('test.mp4');
+  });
+});
+
+describe('getOriginalVideoPath', () => {
+  let videoId: string;
+  let jobId: string;
+
+  beforeEach(async () => {
+    const pool = getPool();
+    const videoRow = await pool.query(
+      "insert into videos (filename, path) values ('original.mp4', '/tmp/original.mp4') returning id"
+    );
+    videoId = videoRow.rows[0].id;
+    const jobRow = await pool.query(
+      "insert into analysis_jobs (video_id, status) values ($1, 'pending') returning id",
+      [videoId]
+    );
+    jobId = jobRow.rows[0].id;
+  });
+
+  afterEach(async () => {
+    await getPool().query('delete from videos where id = $1', [videoId]);
+  });
+
+  it('devuelve la ruta del video original del job', async () => {
+    const path = await getOriginalVideoPath(jobId);
+    expect(path).toBe('/tmp/original.mp4');
+  });
+
+  it('devuelve null si el job no existe', async () => {
+    const path = await getOriginalVideoPath('00000000-0000-0000-0000-000000000000');
+    expect(path).toBeNull();
   });
 });

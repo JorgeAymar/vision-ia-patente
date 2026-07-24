@@ -12,6 +12,7 @@ type JobSummary = {
   helmetCompliancePct: number | null;
   gloveCompliancePct: number | null;
   annotatedPath: string | null;
+  videoFilename: string;
 };
 
 export default function JobPage() {
@@ -41,25 +42,48 @@ export default function JobPage() {
   if (!summary) return <main style={{ padding: '2rem' }}>Cargando...</main>;
 
   return (
-    <main style={{ maxWidth: 640, margin: '2rem auto', fontFamily: 'sans-serif' }}>
-      <h1>Resultado del análisis</h1>
-      <p>Estado: <strong>{summary.status}</strong></p>
+    <main style={{ maxWidth: 1100, margin: '2rem auto', fontFamily: 'sans-serif', padding: '0 1rem' }}>
+      <h1>{summary.videoFilename}</h1>
 
-      {summary.status === 'failed' && <p style={{ color: 'red' }}>{summary.errorMessage}</p>}
+      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+        <section style={{ flex: 1, minWidth: 320 }}>
+          <h2>Video original</h2>
+          <video
+            controls
+            width="100%"
+            src={`/api/videos/original/${summary.jobId}`}
+          />
+        </section>
 
-      {summary.status === 'completed' && (
-        <>
-          <ul>
-            <li>Frames analizados: {summary.framesAnalyzed}</li>
-            <li>Personas detectadas (acumulado): {summary.totalPersonDetections}</li>
-            <li>Cumplimiento de casco: {summary.helmetCompliancePct?.toFixed(1)}%</li>
-            <li>Cumplimiento de guantes: {summary.gloveCompliancePct?.toFixed(1)}%</li>
-          </ul>
-          {summary.annotatedPath && (
-            <video controls width="360" src={`/api/videos/annotated/${summary.jobId}`} />
+        <section style={{ flex: 1, minWidth: 320 }}>
+          <h2>Resultado del análisis</h2>
+          <p>Estado: <strong>{summary.status}</strong></p>
+
+          {summary.status === 'failed' && <p style={{ color: 'red' }}>{summary.errorMessage}</p>}
+
+          {(summary.status === 'pending' || summary.status === 'processing') && (
+            <p>Procesando video, esto puede tardar unos minutos...</p>
           )}
-        </>
-      )}
+
+          {summary.status === 'completed' && (
+            <>
+              <ul>
+                <li>Frames analizados: {summary.framesAnalyzed}</li>
+                <li>Personas detectadas (acumulado): {summary.totalPersonDetections}</li>
+                <li>Cumplimiento de casco: {summary.helmetCompliancePct?.toFixed(1)}%</li>
+                <li>Cumplimiento de guantes: {summary.gloveCompliancePct?.toFixed(1)}%</li>
+              </ul>
+              {summary.annotatedPath && (
+                <video
+                  controls
+                  width="100%"
+                  src={`/api/videos/annotated/${summary.jobId}`}
+                />
+              )}
+            </>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
