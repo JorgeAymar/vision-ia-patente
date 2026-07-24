@@ -1,0 +1,21 @@
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/.env.local
+
+# Python
+worker/__pycache__/
+worker/.pytest_cache/
+worker/.venv/
+worker/.env
+*.pyc
+
+# Datos y modelos (no versionar binarios pesados)
+storage/
+*.pt
+*.mp4
+weights/
+worker/mobileclip_blt.ts
+
+# Postgres data
+pgdata/

@@ -39,8 +39,8 @@ worker/.env
 storage/
 *.pt
 *.mp4
-*.ts
 weights/
+worker/mobileclip_blt.ts
 
 # Postgres data
 pgdata/
@@ -100,7 +100,7 @@ services:
       POSTGRES_PASSWORD: vision
       POSTGRES_DB: vision_ia_security
     ports:
-      - "5432:5432"
+      - "5441:5432"  # 5432 ya está ocupado por otros contenedores locales de este Mac
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -147,12 +147,12 @@ Expected: carpeta `web/` con `package.json`, `app/`, etc.
 
 Crear `worker/.env`:
 ```
-DATABASE_URL=postgresql://vision:vision@localhost:5432/vision_ia_security
+DATABASE_URL=postgresql://vision:vision@localhost:5441/vision_ia_security
 ```
 
 Crear `web/.env.local`:
 ```
-DATABASE_URL=postgresql://vision:vision@localhost:5432/vision_ia_security
+DATABASE_URL=postgresql://vision:vision@localhost:5441/vision_ia_security
 ```
 
 - [ ] **Step 9: Commit**
@@ -307,7 +307,7 @@ import uuid
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-os.environ.setdefault("DATABASE_URL", "postgresql://vision:vision@localhost:5432/vision_ia_security")
+os.environ.setdefault("DATABASE_URL", "postgresql://vision:vision@localhost:5441/vision_ia_security")
 
 import db
 
