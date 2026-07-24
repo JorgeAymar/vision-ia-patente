@@ -27,7 +27,7 @@ test.describe('Página principal', () => {
 });
 
 test.describe('Selección de video y layout de resultados', () => {
-  test('seleccionar un video crea un job, y el job muestra entrada a la izquierda y resultado+estadísticas a la derecha', async ({ page }) => {
+  test('seleccionar un video muestra el resultado en la misma pantalla (sin navegar a otra URL)', async ({ page }) => {
     await page.goto('/');
 
     await page
@@ -35,12 +35,15 @@ test.describe('Selección de video y layout de resultados', () => {
       .getByRole('button', { name: 'Analizar' })
       .click();
 
-    await page.waitForURL(/\/jobs\/[0-9a-f-]+/);
-
     const left = page.getByRole('heading', { name: 'Video original' });
     const right = page.getByRole('heading', { name: 'Resultado del análisis' });
     await expect(left).toBeVisible();
     await expect(right).toBeVisible();
+
+    // seguimos en la misma pantalla, no navegamos a otra URL
+    expect(page.url()).toBe('http://localhost:3000/');
+    // la lista de videos sigue visible junto con el resultado
+    await expect(page.getByText('Perforación de pozos de petróleo.mp4')).toBeVisible();
 
     // izquierda = entrada, a la izquierda de la derecha = resultado
     const leftBox = await left.boundingBox();
