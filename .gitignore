@@ -19,3 +19,9 @@ worker/mobileclip_blt.ts
 
 # Postgres data
 pgdata/
+.gstack/
+
+# Playwright
+web/test-results/
+web/playwright-report/
+web/blob-report/
