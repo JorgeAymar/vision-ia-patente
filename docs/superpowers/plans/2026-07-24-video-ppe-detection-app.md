@@ -121,6 +121,7 @@ ultralytics
 opencv-python
 psycopg2-binary
 pytest
+python-dotenv
 ```
 
 - [ ] **Step 6: Crear entorno virtual e instalar dependencias del worker**
@@ -404,6 +405,11 @@ Expected: `ModuleNotFoundError: No module named 'db'`
 import os
 import psycopg2
 import psycopg2.extras
+from dotenv import load_dotenv
+
+# Carga worker/.env si existe. No pisa variables ya presentes en el entorno
+# (así los tests pueden seguir usando os.environ.setdefault con su propio valor).
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 
 def get_connection():
