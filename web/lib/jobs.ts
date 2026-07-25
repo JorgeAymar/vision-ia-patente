@@ -52,6 +52,14 @@ export async function getJobSummary(jobId: string): Promise<JobSummary | null> {
   };
 }
 
+export async function getLatestJobId(): Promise<string | null> {
+  const pool = getPool();
+  const result = await pool.query(
+    'select id from analysis_jobs order by created_at desc limit 1'
+  );
+  return result.rows[0]?.id ?? null;
+}
+
 export async function getOriginalVideoPath(jobId: string): Promise<string | null> {
   const pool = getPool();
   const result = await pool.query(

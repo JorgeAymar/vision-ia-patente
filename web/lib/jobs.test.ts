@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getJobSummary, getOriginalVideoPath } from './jobs';
+import { getJobSummary, getOriginalVideoPath, getLatestJobId } from './jobs';
 import { getPool } from './db';
 
 describe('getJobSummary', () => {
@@ -83,5 +83,34 @@ describe('getOriginalVideoPath', () => {
   it('devuelve null si el job no existe', async () => {
     const path = await getOriginalVideoPath('00000000-0000-0000-0000-000000000000');
     expect(path).toBeNull();
+  });
+});
+
+describe('getLatestJobId', () => {
+  let videoId: string;
+  let jobId: string;
+
+  beforeEach(async () => {
+    const pool = getPool();
+    const videoRow = await pool.query(
+      "insert into videos (filename, path) values ('latest.mp4', '/tmp/latest.mp4') returning id"
+    );
+    videoId = videoRow.rows[0].id;
+    // created_at en el futuro para garantizar que es "el más reciente" sin
+    // depender de que no haya otros jobs insertándose al mismo tiempo.
+    const jobRow = await pool.query(
+      "insert into analysis_jobs (video_id, status, created_at) values ($1, 'completed', now() + interval '1 hour') returning id",
+      [videoId]
+    );
+    jobId = jobRow.rows[0].id;
+  });
+
+  afterEach(async () => {
+    await getPool().query('delete from videos where id = $1', [videoId]);
+  });
+
+  it('devuelve el id del job más reciente', async () => {
+    const latestId = await getLatestJobId();
+    expect(latestId).toBe(jobId);
   });
 });

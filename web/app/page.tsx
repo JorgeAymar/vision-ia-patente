@@ -29,6 +29,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    fetch('/api/jobs/latest')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.jobId) setActiveJobId(data.jobId);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!activeJobId) return;
     let cancelled = false;
 
