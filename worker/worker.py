@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import traceback
 
@@ -23,6 +24,10 @@ def process_job(conn, job):
 
     os.makedirs(STORAGE_DIR, exist_ok=True)
     annotated_path = os.path.join(STORAGE_DIR, f"{job_id}.mp4")
+    # OpenCV/FFmpeg solo escriben MPEG-4 Part 2 de forma confiable con este fourcc,
+    # y los navegadores no lo decodifican (el <video> se queda cargando para siempre).
+    # Se escribe a un archivo temporal y se recodifica a H.264 al final.
+    raw_path = os.path.join(STORAGE_DIR, f"{job_id}.raw.mp4")
 
     sampled = model_module.detect_sampled_frames(video_path)
 
@@ -34,7 +39,7 @@ def process_job(conn, job):
         if writer is None:
             h, w = frame.shape[:2]
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(annotated_path, fourcc, 2, (w, h))
+            writer = cv2.VideoWriter(raw_path, fourcc, 2, (w, h))
 
         for person in people:
             x1, y1, x2, y2 = map(int, person["bbox"])
@@ -53,6 +58,17 @@ def process_job(conn, job):
 
     if writer is not None:
         writer.release()
+
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", raw_path,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            annotated_path,
+        ],
+        check=True,
+        capture_output=True,
+    )
+    os.remove(raw_path)
 
     db.mark_job_completed(conn, job_id, annotated_path=annotated_path)
     print(f"[worker] job {job_id} completado ({len(sampled)} frames analizados)")

@@ -68,5 +68,15 @@ test.describe('Selección de video y layout de resultados', () => {
     await expect(videos).toHaveCount(2);
     const annotatedVideoSrc = await videos.nth(1).getAttribute('src');
     expect(annotatedVideoSrc).toContain('/api/videos/annotated/');
+
+    // ambos videos deben ser realmente reproducibles por el navegador, no solo
+    // "cargar" un <video> con un src roto (ej. un codec que Chrome no decodifica)
+    for (const video of [videos.first(), videos.nth(1)]) {
+      await expect
+        .poll(() => video.evaluate((el: HTMLVideoElement) => el.readyState), { timeout: 15_000 })
+        .toBeGreaterThanOrEqual(2); // HAVE_CURRENT_DATA: ya se conoce duración y hay un frame decodificado
+      const duration = await video.evaluate((el: HTMLVideoElement) => el.duration);
+      expect(duration).toBeGreaterThan(0);
+    }
   });
 });
