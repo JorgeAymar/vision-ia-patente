@@ -45,15 +45,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/jobs/latest')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.jobId) setActiveJobId(data.jobId);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (!activeJobId) return;
     let cancelled = false;
 
@@ -105,10 +96,10 @@ export default function Home() {
         <p>No hay archivos .mp4 en la carpeta <code>input/</code>.</p>
       )}
 
-      <ul style={{ listStyle: 'none', padding: 0 }}>
+      <ul style={{ listStyle: 'none', padding: 0, margin: '1rem 0 0' }}>
         {videos?.map((filename) => (
-          <li key={filename} style={{ padding: '4px 0' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <li key={filename} style={{ padding: '6px 0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
               <input
                 type="radio"
                 name="video"
@@ -121,49 +112,65 @@ export default function Home() {
         ))}
       </ul>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
 
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '2rem', alignItems: 'stretch' }}>
-        <section style={{ flex: 1, minWidth: 320 }}>
-          <h2>Video original</h2>
+      <div
+        style={{
+          display: 'flex',
+          gap: '2rem',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          marginTop: '2.5rem',
+        }}
+      >
+        <section style={{ flex: '0 1 auto' }}>
+          <h2 style={{ marginBottom: '0.75rem' }}>Video original</h2>
           {summary && (
             <video controls style={videoStyle} src={`/api/videos/original/${summary.jobId}`} />
           )}
         </section>
 
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', alignSelf: 'center' }}>
           <button
             onClick={handleAnalyze}
             disabled={!selectedFilename || analyzing}
-            style={{ fontSize: '1.3rem', padding: '1rem 2rem', fontWeight: 'bold' }}
+            style={{
+              fontSize: '1.3rem',
+              padding: '1rem 2rem',
+              fontWeight: 'bold',
+              backgroundColor: activeJobId ? '#22c55e' : undefined,
+              color: activeJobId ? 'white' : undefined,
+              border: activeJobId ? 'none' : undefined,
+            }}
           >
             {analyzing ? 'Analizando...' : 'Analizar'}
           </button>
         </div>
 
-        <section style={{ flex: 1, minWidth: 320 }}>
-          <h2>Resultado del análisis</h2>
+        <section style={{ flex: '0 1 auto' }}>
+          <h2 style={{ marginBottom: '0.75rem' }}>Resultado del análisis</h2>
 
           {summary && summary.status !== 'completed' && (
             <>
-              <p>
+              <p style={{ margin: '0 0 0.5rem' }}>
                 Estado: <strong>{summary.status}</strong>
               </p>
               {summary.status === 'failed' && (
-                <p style={{ color: 'red' }}>{summary.errorMessage}</p>
+                <p style={{ color: 'red', margin: 0 }}>{summary.errorMessage}</p>
               )}
               {(summary.status === 'pending' || summary.status === 'processing') && (
-                <p>Procesando video, esto puede tardar unos minutos...</p>
+                <p style={{ margin: 0 }}>Procesando video, esto puede tardar unos minutos...</p>
               )}
             </>
           )}
 
           {summary && summary.status === 'completed' && (
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
               {summary.annotatedPath && (
                 <video controls style={videoStyle} src={`/api/videos/annotated/${summary.jobId}`} />
               )}
-              <ul style={{ margin: 0, flex: 1, minWidth: 0 }}>
+              <ul style={{ margin: 0, flex: '0 1 320px', minWidth: 0, lineHeight: 1.6 }}>
                 <li>
                   Estado: <strong>{summary.status}</strong>
                 </li>
