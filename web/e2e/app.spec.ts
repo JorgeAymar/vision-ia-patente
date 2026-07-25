@@ -54,10 +54,11 @@ test.describe('Selección de video y layout de resultados', () => {
     const originalVideoSrc = await page.locator('video').first().getAttribute('src');
     expect(originalVideoSrc).toContain('/api/videos/original/');
 
-    // esperar a que el worker termine de procesar (ya corre en background)
-    await expect(page.locator('p', { hasText: 'Estado:' })).toContainText('completed', {
-      timeout: 60_000,
-    });
+    // esperar a que el worker termine de procesar (ya corre en background).
+    // "Estado:" vive en un <p> mientras está pending/processing y se mueve a un
+    // <li> junto al resto de las estadísticas una vez completed, así que se
+    // busca por texto sin atarse a una etiqueta específica.
+    await expect(page.getByText(/Estado:\s*completed/)).toBeVisible({ timeout: 60_000 });
 
     // estadísticas visibles en la columna derecha
     await expect(page.getByText(/Cumplimiento de casco/)).toBeVisible();

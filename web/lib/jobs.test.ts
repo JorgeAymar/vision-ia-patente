@@ -52,6 +52,53 @@ describe('getJobSummary', () => {
     const summary = await getJobSummary(jobId);
     expect(summary!.videoFilename).toBe('test.mp4');
   });
+
+  it('el veredicto es true si el EPP se detectó en AL MENOS UNA detección', async () => {
+    const summary = await getJobSummary(jobId);
+    // fixture: 2/3 con casco, 1/3 con guantes -> ambos se detectaron alguna vez
+    expect(summary!.framesWithHelmet).toBe(2);
+    expect(summary!.framesWithGlove).toBe(1);
+    expect(summary!.helmetDetectedAtLeastOnce).toBe(true);
+    expect(summary!.gloveDetectedAtLeastOnce).toBe(true);
+  });
+});
+
+describe('getJobSummary — veredicto "nunca detectado"', () => {
+  let videoId: string;
+  let jobId: string;
+
+  beforeEach(async () => {
+    const pool = getPool();
+    const videoRow = await pool.query(
+      "insert into videos (filename, path) values ('never.mp4', '/tmp/never.mp4') returning id"
+    );
+    videoId = videoRow.rows[0].id;
+    const jobRow = await pool.query(
+      "insert into analysis_jobs (video_id, status) values ($1, 'completed') returning id",
+      [videoId]
+    );
+    jobId = jobRow.rows[0].id;
+
+    // casco presente en las 2 detecciones, guantes en ninguna
+    await pool.query(
+      `insert into frame_detections
+         (job_id, frame_number, time_s, bbox_x1, bbox_y1, bbox_x2, bbox_y2, has_helmet, has_glove)
+       values
+         ($1, 0, 0.0, 0, 0, 10, 10, true, false),
+         ($1, 15, 0.5, 0, 0, 10, 10, true, false)`,
+      [jobId]
+    );
+  });
+
+  afterEach(async () => {
+    await getPool().query('delete from videos where id = $1', [videoId]);
+  });
+
+  it('marca el veredicto como false solo para el EPP que nunca se detectó', async () => {
+    const summary = await getJobSummary(jobId);
+    expect(summary!.helmetDetectedAtLeastOnce).toBe(true);
+    expect(summary!.gloveDetectedAtLeastOnce).toBe(false);
+  });
 });
 
 describe('getOriginalVideoPath', () => {

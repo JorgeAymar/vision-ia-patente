@@ -10,8 +10,20 @@ type JobSummary = {
   totalPersonDetections: number;
   helmetCompliancePct: number | null;
   gloveCompliancePct: number | null;
+  framesWithHelmet: number;
+  framesWithGlove: number;
+  helmetDetectedAtLeastOnce: boolean;
+  gloveDetectedAtLeastOnce: boolean;
   annotatedPath: string | null;
   videoFilename: string;
+};
+
+const videoStyle: React.CSSProperties = {
+  maxHeight: 480,
+  width: 'auto',
+  maxWidth: '100%',
+  display: 'block',
+  flexShrink: 0,
 };
 
 export default function Home() {
@@ -79,7 +91,7 @@ export default function Home() {
   }
 
   return (
-    <main style={{ maxWidth: 1100, margin: '2rem auto', fontFamily: 'sans-serif', padding: '0 1rem' }}>
+    <main style={{ maxWidth: 1300, margin: '2rem auto', fontFamily: 'sans-serif', padding: '0 1rem' }}>
       <h1>Detección de EPP en video</h1>
       <p>Elige un video de la carpeta <code>input/</code> para detectar personas, cascos y guantes.</p>
 
@@ -108,33 +120,51 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '2rem' }}>
           <section style={{ flex: 1, minWidth: 320 }}>
             <h2>Video original</h2>
-            <video controls width="100%" src={`/api/videos/original/${summary.jobId}`} />
+            <video controls style={videoStyle} src={`/api/videos/original/${summary.jobId}`} />
           </section>
 
           <section style={{ flex: 1, minWidth: 320 }}>
             <h2>Resultado del análisis</h2>
-            <p>
-              Estado: <strong>{summary.status}</strong>
-            </p>
 
-            {summary.status === 'failed' && <p style={{ color: 'red' }}>{summary.errorMessage}</p>}
-
-            {(summary.status === 'pending' || summary.status === 'processing') && (
-              <p>Procesando video, esto puede tardar unos minutos...</p>
+            {summary.status !== 'completed' && (
+              <>
+                <p>
+                  Estado: <strong>{summary.status}</strong>
+                </p>
+                {summary.status === 'failed' && (
+                  <p style={{ color: 'red' }}>{summary.errorMessage}</p>
+                )}
+                {(summary.status === 'pending' || summary.status === 'processing') && (
+                  <p>Procesando video, esto puede tardar unos minutos...</p>
+                )}
+              </>
             )}
 
             {summary.status === 'completed' && (
-              <>
-                <ul>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                {summary.annotatedPath && (
+                  <video controls style={videoStyle} src={`/api/videos/annotated/${summary.jobId}`} />
+                )}
+                <ul style={{ margin: 0, flex: 1, minWidth: 0 }}>
+                  <li>
+                    Estado: <strong>{summary.status}</strong>
+                  </li>
                   <li>Frames analizados: {summary.framesAnalyzed}</li>
                   <li>Personas detectadas (acumulado): {summary.totalPersonDetections}</li>
                   <li>Cumplimiento de casco: {summary.helmetCompliancePct?.toFixed(1)}%</li>
                   <li>Cumplimiento de guantes: {summary.gloveCompliancePct?.toFixed(1)}%</li>
+                  <li>
+                    {summary.helmetDetectedAtLeastOnce ? '✅' : '❌'} Casco:{' '}
+                    {summary.helmetDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
+                    {summary.framesWithHelmet}/{summary.totalPersonDetections})
+                  </li>
+                  <li>
+                    {summary.gloveDetectedAtLeastOnce ? '✅' : '❌'} Guantes:{' '}
+                    {summary.gloveDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
+                    {summary.framesWithGlove}/{summary.totalPersonDetections})
+                  </li>
                 </ul>
-                {summary.annotatedPath && (
-                  <video controls width="100%" src={`/api/videos/annotated/${summary.jobId}`} />
-                )}
-              </>
+              </div>
             )}
           </section>
         </div>

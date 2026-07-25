@@ -8,6 +8,13 @@ export type JobSummary = {
   totalPersonDetections: number;
   helmetCompliancePct: number | null;
   gloveCompliancePct: number | null;
+  framesWithHelmet: number;
+  framesWithGlove: number;
+  // Veredicto simple a nivel de video completo (no rastrea personas individuales
+  // entre frames): true si el casco/guante se detectó en AL MENOS UNA de las
+  // detecciones de persona analizadas.
+  helmetDetectedAtLeastOnce: boolean;
+  gloveDetectedAtLeastOnce: boolean;
   annotatedPath: string | null;
   videoFilename: string;
 };
@@ -45,10 +52,14 @@ export async function getJobSummary(jobId: string): Promise<JobSummary | null> {
     videoFilename: video_filename,
     framesAnalyzed: frames_analyzed,
     totalPersonDetections: total_person_detections,
+    framesWithHelmet: with_helmet,
+    framesWithGlove: with_glove,
     helmetCompliancePct:
       total_person_detections > 0 ? (with_helmet / total_person_detections) * 100 : null,
     gloveCompliancePct:
       total_person_detections > 0 ? (with_glove / total_person_detections) * 100 : null,
+    helmetDetectedAtLeastOnce: with_helmet > 0,
+    gloveDetectedAtLeastOnce: with_glove > 0,
   };
 }
 
