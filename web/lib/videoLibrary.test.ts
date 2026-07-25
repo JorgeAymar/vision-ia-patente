@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
-import { listAvailableVideos, selectVideoFromLibrary } from './videoLibrary';
+import { listAvailableVideos, selectVideoFromLibrary, resolveInputVideoPath } from './videoLibrary';
 import { getPool } from './db';
 
 describe('listAvailableVideos', () => {
@@ -22,6 +22,32 @@ describe('listAvailableVideos', () => {
   it('lista solo archivos .mp4, sin distinguir mayúsculas, ordenados', async () => {
     const result = await listAvailableVideos(dir);
     expect(result).toEqual(['B.MP4', 'a.mp4']);
+  });
+});
+
+describe('resolveInputVideoPath', () => {
+  let dir: string;
+
+  beforeAll(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'videolib-resolve-'));
+    await writeFile(path.join(dir, 'sample.mp4'), 'fake bytes');
+  });
+
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('devuelve la ruta completa del archivo dentro de la carpeta dada', async () => {
+    const filePath = await resolveInputVideoPath('sample.mp4', dir);
+    expect(filePath).toBe(path.join(dir, 'sample.mp4'));
+  });
+
+  it('lanza si el archivo no existe', async () => {
+    await expect(resolveInputVideoPath('missing.mp4', dir)).rejects.toThrow();
+  });
+
+  it('lanza si el archivo no termina en .mp4', async () => {
+    await expect(resolveInputVideoPath('sample.txt', dir)).rejects.toThrow();
   });
 });
 

@@ -30,14 +30,20 @@ test.describe('Selección de video y layout de resultados', () => {
   test('seleccionar un video muestra el resultado en la misma pantalla (sin navegar a otra URL)', async ({ page }) => {
     await page.goto('/');
 
-    // el primer video de la lista queda seleccionado por defecto (radio),
-    // así que solo hace falta el botón grande "Analizar" al centro
-    await page.getByRole('button', { name: 'Analizar' }).click();
-
     const left = page.getByRole('heading', { name: 'Video original' });
     const right = page.getByRole('heading', { name: 'Resultado del análisis' });
     await expect(left).toBeVisible();
     await expect(right).toBeVisible();
+
+    // el primer video de la lista queda seleccionado por defecto (radio), así
+    // que el video original ya debe verse ANTES de tocar "Analizar" — no
+    // depende de que haya un job corriendo
+    const originalVideoSrc = await page.locator('video').first().getAttribute('src');
+    expect(originalVideoSrc).toContain('/api/videos/input/');
+    // el panel de resultado, en cambio, sigue vacío hasta el clic
+    await expect(page.getByText(/Estado:/)).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Analizar' }).click();
 
     // seguimos en la misma pantalla, no navegamos a otra URL
     expect(page.url()).toBe('http://localhost:3000/');
@@ -48,10 +54,6 @@ test.describe('Selección de video y layout de resultados', () => {
     const leftBox = await left.boundingBox();
     const rightBox = await right.boundingBox();
     expect(leftBox!.x).toBeLessThan(rightBox!.x);
-
-    // el video de la izquierda es el original (input), sin anotar
-    const originalVideoSrc = await page.locator('video').first().getAttribute('src');
-    expect(originalVideoSrc).toContain('/api/videos/original/');
 
     // esperar a que el worker termine de procesar (ya corre en background).
     // "Estado:" vive en un <p> mientras está pending/processing y se mueve a un

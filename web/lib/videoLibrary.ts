@@ -15,10 +15,10 @@ export async function listAvailableVideos(dir: string = INPUT_DIR): Promise<stri
   return entries.filter((name) => name.toLowerCase().endsWith('.mp4')).sort();
 }
 
-export async function selectVideoFromLibrary(
+export async function resolveInputVideoPath(
   filename: string,
   baseDir: string = INPUT_DIR
-): Promise<{ videoId: string; jobId: string }> {
+): Promise<string> {
   const safeName = path.basename(filename);
   if (!safeName.toLowerCase().endsWith('.mp4')) {
     throw new Error('Solo se pueden seleccionar archivos .mp4');
@@ -26,6 +26,15 @@ export async function selectVideoFromLibrary(
 
   const filePath = path.join(baseDir, safeName);
   await stat(filePath); // lanza si el archivo no existe
+  return filePath;
+}
+
+export async function selectVideoFromLibrary(
+  filename: string,
+  baseDir: string = INPUT_DIR
+): Promise<{ videoId: string; jobId: string }> {
+  const filePath = await resolveInputVideoPath(filename, baseDir);
+  const safeName = path.basename(filePath);
 
   const pool = getPool();
   const videoResult = await pool.query(

@@ -126,8 +126,12 @@ export default function Home() {
       >
         <section style={{ flex: '0 1 auto' }}>
           <h2 style={{ marginBottom: '0.75rem' }}>Video original</h2>
-          {summary && (
-            <video controls style={videoStyle} src={`/api/videos/original/${summary.jobId}`} />
+          {selectedFilename && (
+            <video
+              controls
+              style={videoStyle}
+              src={`/api/videos/input/${encodeURIComponent(selectedFilename)}`}
+            />
           )}
         </section>
 
