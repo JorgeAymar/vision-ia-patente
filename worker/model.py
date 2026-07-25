@@ -16,7 +16,11 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        _model = YOLOE("yoloe-26s-seg.pt")
+        # yoloe-26s-seg.pt (YOLO26) se probó y quedó descartado: con el mismo
+        # umbral de confianza, "safety helmet" nunca cruza el piso (0.01) en
+        # frames donde yoloe-11s-seg.pt sí lo detecta de forma consistente.
+        # yoloe-11 sigue siendo la versión validada para este caso de uso.
+        _model = YOLOE("yoloe-11s-seg.pt")
         _model.set_classes(CLASSES, _model.get_text_pe(CLASSES))
     return _model
 
