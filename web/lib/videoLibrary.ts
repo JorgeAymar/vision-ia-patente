@@ -3,15 +3,21 @@ import path from 'path';
 import { getPool } from './db';
 
 const PROJECT_ROOT = path.join(process.cwd(), '..');
+const INPUT_DIR = path.join(PROJECT_ROOT, 'input');
 
-export async function listAvailableVideos(dir: string = PROJECT_ROOT): Promise<string[]> {
-  const entries = await readdir(dir);
+export async function listAvailableVideos(dir: string = INPUT_DIR): Promise<string[]> {
+  let entries: string[];
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return []; // la carpeta de entrada todavía no existe
+  }
   return entries.filter((name) => name.toLowerCase().endsWith('.mp4')).sort();
 }
 
 export async function selectVideoFromLibrary(
   filename: string,
-  baseDir: string = PROJECT_ROOT
+  baseDir: string = INPUT_DIR
 ): Promise<{ videoId: string; jobId: string }> {
   const safeName = path.basename(filename);
   if (!safeName.toLowerCase().endsWith('.mp4')) {

@@ -72,11 +72,11 @@ export default function Home() {
   return (
     <main style={{ maxWidth: 1100, margin: '2rem auto', fontFamily: 'sans-serif', padding: '0 1rem' }}>
       <h1>Detección de EPP en video</h1>
-      <p>Elige un video de la carpeta del proyecto para detectar personas, cascos y guantes.</p>
+      <p>Elige un video de la carpeta <code>input/</code> para detectar personas, cascos y guantes.</p>
 
       {videos === null && !error && <p>Cargando lista de videos...</p>}
       {videos !== null && videos.length === 0 && (
-        <p>No hay archivos .mp4 en la carpeta del proyecto.</p>
+        <p>No hay archivos .mp4 en la carpeta <code>input/</code>.</p>
       )}
 
       <ul style={{ listStyle: 'none', padding: 0 }}>
