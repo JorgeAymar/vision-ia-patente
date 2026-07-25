@@ -16,7 +16,7 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        _model = YOLOE("yoloe-11s-seg.pt")
+        _model = YOLOE("yoloe-26s-seg.pt")
         _model.set_classes(CLASSES, _model.get_text_pe(CLASSES))
     return _model
 

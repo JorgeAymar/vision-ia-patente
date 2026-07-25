@@ -28,7 +28,8 @@ const videoStyle: React.CSSProperties = {
 
 export default function Home() {
   const [videos, setVideos] = useState<string[] | null>(null);
-  const [selecting, setSelecting] = useState<string | null>(null);
+  const [selectedFilename, setSelectedFilename] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [summary, setSummary] = useState<JobSummary | null>(null);
@@ -36,7 +37,10 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/videos/library')
       .then((res) => res.json())
-      .then((data) => setVideos(data.videos))
+      .then((data) => {
+        setVideos(data.videos);
+        if (data.videos?.length > 0) setSelectedFilename(data.videos[0]);
+      })
       .catch(() => setError('No se pudo leer la lista de videos'));
   }, []);
 
@@ -70,15 +74,16 @@ export default function Home() {
     };
   }, [activeJobId]);
 
-  async function handleSelect(filename: string) {
+  async function handleAnalyze() {
+    if (!selectedFilename) return;
     setError(null);
-    setSelecting(filename);
+    setAnalyzing(true);
     setSummary(null);
     try {
       const response = await fetch('/api/videos/select', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename }),
+        body: JSON.stringify({ filename: selectedFilename }),
       });
       if (!response.ok) throw new Error('Error al seleccionar el video');
       const { jobId } = await response.json();
@@ -86,7 +91,7 @@ export default function Home() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
-      setSelecting(null);
+      setAnalyzing(false);
     }
   }
 
@@ -102,73 +107,85 @@ export default function Home() {
 
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {videos?.map((filename) => (
-          <li
-            key={filename}
-            style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}
-          >
-            <span>{filename}</span>
-            <button onClick={() => handleSelect(filename)} disabled={selecting !== null}>
-              {selecting === filename ? 'Analizando...' : 'Analizar'}
-            </button>
+          <li key={filename} style={{ padding: '4px 0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="video"
+                checked={selectedFilename === filename}
+                onChange={() => setSelectedFilename(filename)}
+              />
+              {filename}
+            </label>
           </li>
         ))}
       </ul>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {summary && (
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '2rem' }}>
-          <section style={{ flex: 1, minWidth: 320 }}>
-            <h2>Video original</h2>
+      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '2rem', alignItems: 'stretch' }}>
+        <section style={{ flex: 1, minWidth: 320 }}>
+          <h2>Video original</h2>
+          {summary && (
             <video controls style={videoStyle} src={`/api/videos/original/${summary.jobId}`} />
-          </section>
+          )}
+        </section>
 
-          <section style={{ flex: 1, minWidth: 320 }}>
-            <h2>Resultado del análisis</h2>
-
-            {summary.status !== 'completed' && (
-              <>
-                <p>
-                  Estado: <strong>{summary.status}</strong>
-                </p>
-                {summary.status === 'failed' && (
-                  <p style={{ color: 'red' }}>{summary.errorMessage}</p>
-                )}
-                {(summary.status === 'pending' || summary.status === 'processing') && (
-                  <p>Procesando video, esto puede tardar unos minutos...</p>
-                )}
-              </>
-            )}
-
-            {summary.status === 'completed' && (
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                {summary.annotatedPath && (
-                  <video controls style={videoStyle} src={`/api/videos/annotated/${summary.jobId}`} />
-                )}
-                <ul style={{ margin: 0, flex: 1, minWidth: 0 }}>
-                  <li>
-                    Estado: <strong>{summary.status}</strong>
-                  </li>
-                  <li>Frames analizados: {summary.framesAnalyzed}</li>
-                  <li>Personas detectadas (acumulado): {summary.totalPersonDetections}</li>
-                  <li>Cumplimiento de casco: {summary.helmetCompliancePct?.toFixed(1)}%</li>
-                  <li>Cumplimiento de guantes: {summary.gloveCompliancePct?.toFixed(1)}%</li>
-                  <li>
-                    {summary.helmetDetectedAtLeastOnce ? '✅' : '❌'} Casco:{' '}
-                    {summary.helmetDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
-                    {summary.framesWithHelmet}/{summary.totalPersonDetections})
-                  </li>
-                  <li>
-                    {summary.gloveDetectedAtLeastOnce ? '✅' : '❌'} Guantes:{' '}
-                    {summary.gloveDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
-                    {summary.framesWithGlove}/{summary.totalPersonDetections})
-                  </li>
-                </ul>
-              </div>
-            )}
-          </section>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button
+            onClick={handleAnalyze}
+            disabled={!selectedFilename || analyzing}
+            style={{ fontSize: '1.3rem', padding: '1rem 2rem', fontWeight: 'bold' }}
+          >
+            {analyzing ? 'Analizando...' : 'Analizar'}
+          </button>
         </div>
-      )}
+
+        <section style={{ flex: 1, minWidth: 320 }}>
+          <h2>Resultado del análisis</h2>
+
+          {summary && summary.status !== 'completed' && (
+            <>
+              <p>
+                Estado: <strong>{summary.status}</strong>
+              </p>
+              {summary.status === 'failed' && (
+                <p style={{ color: 'red' }}>{summary.errorMessage}</p>
+              )}
+              {(summary.status === 'pending' || summary.status === 'processing') && (
+                <p>Procesando video, esto puede tardar unos minutos...</p>
+              )}
+            </>
+          )}
+
+          {summary && summary.status === 'completed' && (
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              {summary.annotatedPath && (
+                <video controls style={videoStyle} src={`/api/videos/annotated/${summary.jobId}`} />
+              )}
+              <ul style={{ margin: 0, flex: 1, minWidth: 0 }}>
+                <li>
+                  Estado: <strong>{summary.status}</strong>
+                </li>
+                <li>Frames analizados: {summary.framesAnalyzed}</li>
+                <li>Personas detectadas (acumulado): {summary.totalPersonDetections}</li>
+                <li>Cumplimiento de casco: {summary.helmetCompliancePct?.toFixed(1)}%</li>
+                <li>Cumplimiento de guantes: {summary.gloveCompliancePct?.toFixed(1)}%</li>
+                <li>
+                  {summary.helmetDetectedAtLeastOnce ? '✅' : '❌'} Casco:{' '}
+                  {summary.helmetDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
+                  {summary.framesWithHelmet}/{summary.totalPersonDetections})
+                </li>
+                <li>
+                  {summary.gloveDetectedAtLeastOnce ? '✅' : '❌'} Guantes:{' '}
+                  {summary.gloveDetectedAtLeastOnce ? 'SÍ' : 'NO'} detectado (
+                  {summary.framesWithGlove}/{summary.totalPersonDetections})
+                </li>
+              </ul>
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 }

@@ -30,10 +30,9 @@ test.describe('Selección de video y layout de resultados', () => {
   test('seleccionar un video muestra el resultado en la misma pantalla (sin navegar a otra URL)', async ({ page }) => {
     await page.goto('/');
 
-    await page
-      .locator('li', { hasText: 'Perforación de pozos de petróleo.mp4' })
-      .getByRole('button', { name: 'Analizar' })
-      .click();
+    // el primer video de la lista queda seleccionado por defecto (radio),
+    // así que solo hace falta el botón grande "Analizar" al centro
+    await page.getByRole('button', { name: 'Analizar' }).click();
 
     const left = page.getByRole('heading', { name: 'Video original' });
     const right = page.getByRole('heading', { name: 'Resultado del análisis' });

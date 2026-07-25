@@ -15,7 +15,7 @@ storage/
 *.pt
 *.mp4
 weights/
-worker/mobileclip_blt.ts
+worker/mobileclip*.ts
 
 # Postgres data
 pgdata/
