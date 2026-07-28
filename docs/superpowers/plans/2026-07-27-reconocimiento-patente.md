@@ -187,7 +187,10 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Smoke-test it manually against the real test photo**
 
-Run: `cd worker && .venv/bin/python detect_plate.py ../automovil.png | python3 -c "import json,sys; d=json.load(sys.stdin); print({k:v for k,v in d.items() if k != 'croppedImageBase64'}, 'base64 len:', len(d.get('croppedImageBase64','')))"`
+Run: `cd worker && .venv/bin/python detect_plate.py ../input/automovil.png | python3 -c "import json,sys; d=json.load(sys.stdin); print({k:v for k,v in d.items() if k != 'croppedImageBase64'}, 'base64 len:', len(d.get('croppedImageBase64','')))"`
+
+(Note: `automovil.png` originally lived at the repo root when this plan was written; it has
+since moved to `input/automovil.png` — use that path.)
 
 Expected: prints either `{'bbox': [...], 'confidence': <0-1 float>} base64 len: <N>` (a
 plate was found) or `{'error': 'no_plate_detected'} base64 len: 0`. Either is a valid
@@ -207,16 +210,19 @@ git commit -m "feat(worker): add detect_plate.py CLI for one-shot plate detectio
 ### Task 3: Make the test photo servable by Next.js
 
 **Files:**
-- Create: `web/public/automovil.png` (copy of the repo-root `automovil.png`)
+- Create: `web/public/automovil.png` (copy of `input/automovil.png` — note: this file was
+  originally at the repo root when the spec was written, but has since moved to `input/`;
+  use `input/automovil.png` as the source, not the repo root)
 
 - [ ] **Step 1: Copy the file**
 
-Run: `cp automovil.png web/public/automovil.png`
+Run: `cp input/automovil.png web/public/automovil.png`
 
 - [ ] **Step 2: Verify it's there**
 
 Run: `file web/public/automovil.png`
-Expected: `web/public/automovil.png: PNG image data, 584 x 790, ...` (same file as the root copy)
+Expected: `web/public/automovil.png: PNG image data, 584 x 790, ...` (same file as the
+`input/` copy)
 
 - [ ] **Step 3: Commit**
 
