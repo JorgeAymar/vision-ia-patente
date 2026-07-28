@@ -67,7 +67,7 @@ Browser (/)
   → POST /api/plate/ocr  con body { croppedImageBase64 }
        Next.js llama a Ollama:
          POST http://localhost:11434/api/generate
-         { model: "gemma4:31b-cloud", images: [croppedImageBase64], prompt: ... }
+         { model: "kimi-k2.6:cloud", images: [croppedImageBase64], prompt: ... }
          pidiendo únicamente el texto de la patente.
   → Next.js responde al browser: { plateText } | { error }
   → la UI pinta la parte 3 con el texto leído
@@ -89,9 +89,16 @@ umbral de confianza; ese resultado es de una clase distinta y no se traslada
 automáticamente a "license plate" — se vuelve a evaluar acá si hace falta.)
 
 **Por qué la llamada a Ollama va directo desde Next.js y no pasa por Python:** el modelo
-`gemma4:31b-cloud` corre en la nube de Ollama pero se llama a través del daemon local
+`kimi-k2.6:cloud` corre en la nube de Ollama pero se llama a través del daemon local
 (`localhost:11434`), que expone una API HTTP estándar con soporte de `images` en base64.
 No hay necesidad de Python para esta parte — `fetch` nativo de Next.js alcanza.
+
+**Nota — modelo de OCR corregido durante la verificación manual (Task 9):** el diseño
+original elegía `gemma4:31b-cloud` porque `ollama show` reporta capacidad `vision`. En la
+práctica, ese modelo devuelve HTTP 500 para cualquier request que incluya `images` (probado
+con una imagen real de 1x1 píxel, aislado del código propio). `kimi-k2.6:cloud` también
+reporta `vision` y sí funciona — verificado end-to-end contra el recorte real de
+`automovil.png`, devolviendo el texto correcto ("SL BL 18") limpio en el campo `response`.
 
 ## UI — 3 partes y 2 botones en una sola página
 
@@ -141,7 +148,7 @@ Casos reales para una sola imagen fija (sin sobre-diseñar para casos que no van
 ```bash
 cd web && npm run dev     # Next.js en localhost:3000 — detector de patentes en '/'
 # la app de EPP (video) sigue disponible en localhost:3000/epp
-# Ollama debe estar corriendo localmente (ya lo está) con acceso a gemma4:31b-cloud
+# Ollama debe estar corriendo localmente (ya lo está) con acceso a kimi-k2.6:cloud
 ```
 
 No hace falta `docker compose up` (Postgres) ni el worker en loop para esta funcionalidad,
