@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import styles from './page.module.css';
 
 type DetectResult =
   | { bbox: [number, number, number, number]; confidence: number; croppedImageBase64: string }
@@ -105,101 +106,147 @@ export default function PatentePage() {
     }
   }
 
+  const readDone = ocrResult && !('error' in ocrResult);
+
   return (
-    <main style={{ maxWidth: 1300, margin: '2rem auto', fontFamily: 'sans-serif', padding: '0 1rem' }}>
-      <h1>Reconocimiento de patente</h1>
-      <p>
-        Detecta la zona de la patente en <code>automovil.png</code> y lee su texto, en dos
-        pasos independientes.
-      </p>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <div className={styles.eyebrow}>
+          <span className={styles.eyebrowDot} />
+          Sistema de visión · ANPR
+        </div>
+        <h1 className={styles.title}>Reconocimiento de Patente</h1>
+        <p className={styles.subtitle}>
+          Detecta la zona de la patente en <code>automovil.png</code> y lee su texto, en dos
+          pasos independientes.
+        </p>
 
-      <div style={{ display: 'flex', gap: '1rem', margin: '1.5rem 0' }}>
-        <button
-          onClick={handleDetect}
-          disabled={detecting || reading}
-          style={{
-            fontSize: '1.1rem',
-            padding: '0.9rem 1.6rem',
-            fontWeight: 'bold',
-            backgroundColor: crop ? '#22c55e' : undefined,
-            color: crop ? 'white' : undefined,
-            border: crop ? 'none' : undefined,
-          }}
-        >
-          {detecting ? 'Reconociendo...' : 'Reconocer patente'}
-        </button>
-
-        <button
-          onClick={handleRead}
-          disabled={!crop || reading}
-          style={{
-            fontSize: '1.1rem',
-            padding: '0.9rem 1.6rem',
-            fontWeight: 'bold',
-            backgroundColor: ocrResult && !('error' in ocrResult) ? '#22c55e' : undefined,
-            color: ocrResult && !('error' in ocrResult) ? 'white' : undefined,
-            border: ocrResult && !('error' in ocrResult) ? 'none' : undefined,
-          }}
-        >
-          {reading ? 'Leyendo...' : 'Leer texto'}
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-        <section>
-          <h2 style={{ marginBottom: '0.75rem' }}>1. Foto original</h2>
+        <div className={styles.controls}>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleUpload}
-            style={{ display: 'none' }}
+            className={styles.hiddenInput}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            style={{ padding: '0.5rem 1rem', marginBottom: '0.75rem' }}
+            className={styles.btnGhost}
           >
-            {uploading ? 'Cargando...' : 'Cargar imagen'}
+            {uploading ? 'Cargando…' : 'Cargar imagen'}
           </button>
-          {uploadError && <p style={{ color: 'red', margin: '0 0 0.75rem' }}>{uploadError}</p>}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`${IMAGE_SRC}?v=${imageVersion}`}
-            alt="Auto"
-            style={{ maxHeight: 420, display: 'block' }}
-          />
-        </section>
 
-        <section>
-          <h2 style={{ marginBottom: '0.75rem' }}>2. Zona recortada</h2>
-          {!detectResult && <p>Apretá &quot;Reconocer patente&quot; para generar el recorte.</p>}
-          {detectResult && 'error' in detectResult && (
-            <p style={{ color: 'red' }}>No se detectó una patente ({detectResult.error}).</p>
-          )}
-          {crop && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={`data:image/png;base64,${crop.croppedImageBase64}`}
-              alt="Zona de la patente recortada"
-              style={{ maxHeight: 420, display: 'block' }}
-            />
-          )}
-        </section>
+          <div className={styles.divider} />
 
-        <section>
-          <h2 style={{ marginBottom: '0.75rem' }}>3. Texto extraído</h2>
-          {!ocrResult && <p>—</p>}
-          {ocrResult && 'plateText' in ocrResult && (
-            <p style={{ fontFamily: 'monospace', fontSize: '1.5rem', fontWeight: 'bold' }}>
-              {ocrResult.plateText}
-            </p>
-          )}
-          {ocrResult && 'error' in ocrResult && (
-            <p style={{ color: 'red' }}>{ocrResult.error}</p>
-          )}
-        </section>
+          <button
+            onClick={handleDetect}
+            disabled={detecting || reading}
+            className={crop ? styles.btnPrimaryActive : styles.btnPrimary}
+          >
+            {detecting ? 'Reconociendo…' : 'Reconocer patente'}
+          </button>
+
+          <button
+            onClick={handleRead}
+            disabled={!crop || reading}
+            className={readDone ? styles.btnPrimaryActive : styles.btnPrimary}
+          >
+            {reading ? 'Leyendo…' : 'Leer texto'}
+          </button>
+        </div>
+        {uploadError && <p className={styles.errorText}>{uploadError}</p>}
+
+        <div className={styles.panels}>
+          <section className={styles.panel} style={{ animationDelay: '0.16s' }}>
+            <div className={styles.panelHeader}>
+              <span className={styles.panelLabel}>
+                <span className={styles.panelIndex}>01</span> Entrada
+              </span>
+            </div>
+            <div className={styles.frame}>
+              <span className={`${styles.corner} ${styles.cornerTL}`} />
+              <span className={`${styles.corner} ${styles.cornerTR}`} />
+              <span className={`${styles.corner} ${styles.cornerBL}`} />
+              <span className={`${styles.corner} ${styles.cornerBR}`} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${IMAGE_SRC}?v=${imageVersion}`}
+                alt="Auto"
+                className={styles.frameImage}
+              />
+            </div>
+          </section>
+
+          <section className={styles.panel} style={{ animationDelay: '0.22s' }}>
+            <div className={styles.panelHeader}>
+              <span className={styles.panelLabel}>
+                <span className={styles.panelIndex}>02</span> Recorte
+              </span>
+              {crop && (
+                <span className={styles.panelMeta}>
+                  conf. {(crop.confidence * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <div className={styles.frame}>
+              <span className={`${styles.corner} ${styles.cornerTL}`} />
+              <span className={`${styles.corner} ${styles.cornerTR}`} />
+              <span className={`${styles.corner} ${styles.cornerBL}`} />
+              <span className={`${styles.corner} ${styles.cornerBR}`} />
+              {detecting && (
+                <div className={styles.scanOverlay}>
+                  <div className={styles.scanLine} />
+                </div>
+              )}
+              {!detectResult && !detecting && (
+                <p className={styles.placeholder}>
+                  Apretá <kbd>Reconocer patente</kbd> para generar el recorte.
+                </p>
+              )}
+              {detectResult && 'error' in detectResult && (
+                <p className={styles.errorState}>
+                  No se detectó una patente ({detectResult.error}).
+                </p>
+              )}
+              {crop && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={`data:image/png;base64,${crop.croppedImageBase64}`}
+                  alt="Zona de la patente recortada"
+                  className={styles.frameImage}
+                />
+              )}
+            </div>
+          </section>
+
+          <section className={styles.panel} style={{ animationDelay: '0.28s' }}>
+            <div className={styles.panelHeader}>
+              <span className={styles.panelLabel}>
+                <span className={styles.panelIndex}>03</span> Lectura
+              </span>
+            </div>
+            <div className={styles.frame}>
+              <span className={`${styles.corner} ${styles.cornerTL}`} />
+              <span className={`${styles.corner} ${styles.cornerTR}`} />
+              <span className={`${styles.corner} ${styles.cornerBL}`} />
+              <span className={`${styles.corner} ${styles.cornerBR}`} />
+              {reading && (
+                <div className={styles.scanOverlay}>
+                  <div className={styles.scanLine} />
+                </div>
+              )}
+              {!ocrResult && !reading && <p className={styles.placeholder}>—</p>}
+              {ocrResult && 'plateText' in ocrResult && (
+                <p className={styles.plateReadout}>{ocrResult.plateText}</p>
+              )}
+              {ocrResult && 'error' in ocrResult && (
+                <p className={styles.errorState}>{ocrResult.error}</p>
+              )}
+            </div>
+          </section>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
