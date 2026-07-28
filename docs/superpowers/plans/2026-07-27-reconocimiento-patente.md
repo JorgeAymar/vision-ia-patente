@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a new `/patente` page in the existing Next.js app that recognizes a car's license plate from a fixed test photo in two independently-triggered steps: crop the plate zone with YOLOE, then read its text with Ollama's `gemma4:31b-cloud` vision model.
+**Goal:** Build a new root page (`/`) in the existing Next.js app that recognizes a car's license plate from a fixed test photo in two independently-triggered steps: crop the plate zone with YOLOE, then read its text with Ollama's `gemma4:31b-cloud` vision model. (Revised during implementation: this replaces the old EPP video app at `/` — that app was moved to `/epp` rather than deleted, per explicit user decision.)
 
 **Architecture:** Two pure-logic Python helpers feed a one-shot CLI script (`worker/detect_plate.py`) that Next.js invokes as a subprocess per click (no job queue, no persistent worker — this is stateless and processes one image at a time). Two Next.js API routes (`/api/plate/detect`, `/api/plate/ocr`) wrap that subprocess and a direct HTTP call to the local Ollama daemon, respectively. The page has two buttons — "Reconocer patente" and "Leer texto" — mirroring the 3 visible parts (original photo / cropped zone / extracted text) from the spec.
 
@@ -538,15 +538,16 @@ git commit -m "feat(web): add POST /api/plate/ocr route"
 
 ---
 
-### Task 8: `/patente` page — 3 parts, 2 buttons
+### Task 8: Root page (`/`) — 3 parts, 2 buttons
 
 **Files:**
-- Create: `web/app/patente/page.tsx`
+- Create: `web/app/page.tsx` (root route — the old EPP page that used to live here has
+  already been moved to `web/app/epp/page.tsx` in a prior step, so this path is free)
 
 - [ ] **Step 1: Write the page**
 
 ```tsx
-// web/app/patente/page.tsx
+// web/app/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -686,8 +687,8 @@ export default function PatentePage() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add web/app/patente/page.tsx
-git commit -m "feat(web): add /patente page with detect and OCR buttons"
+git add web/app/page.tsx
+git commit -m "feat(web): add root page with plate detect and OCR buttons"
 ```
 
 ---
@@ -710,12 +711,13 @@ Expected: all tests pass, including the new `test_plate_geometry.py` and the pre
 
 - [ ] **Step 3: Confirm the dev server is running**
 
-Run: `curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/patente`
-Expected: `200`. If not running, start it: `cd web && npm run dev` (background).
+Run: `curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/`
+Expected: `200`. If not running, start it: `cd web && npm run dev` (background). Also
+sanity-check `http://localhost:3000/epp` still returns `200` (the relocated EPP app).
 
 - [ ] **Step 4: Drive the page in a real browser**
 
-Open `http://localhost:3000/patente`, click "Reconocer patente", wait for the crop to
+Open `http://localhost:3000/`, click "Reconocer patente", wait for the crop to
 appear in part 2, then click "Leer texto" and wait for part 3. Take a screenshot after each
 click.
 

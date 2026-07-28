@@ -5,17 +5,21 @@
 
 ## Contexto
 
-La app ya tiene un flujo de video para detección de EPP (`web/` + `worker/`, Next.js +
-Postgres + worker Python con YOLOE). Esta es una funcionalidad **nueva y separada**: una
-página que, a partir de una foto de auto, reconoce (lee) el texto de la patente en 3 pasos
-visibles en una misma pantalla.
+La app ya tenía un flujo de video para detección de EPP (`web/` + `worker/`, Next.js +
+Postgres + worker Python con YOLOE) viviendo en la ruta raíz (`/`). Esta es una
+funcionalidad nueva: una página que, a partir de una foto de auto, reconoce (lee) el texto
+de la patente en 3 pasos visibles en una misma pantalla.
 
-No reemplaza ni modifica la app de EPP existente — coexisten como rutas distintas dentro
-del mismo proyecto Next.js.
+**Decisión (revisada durante la implementación):** el detector de patentes pasa a vivir en
+la ruta raíz (`/`), reemplazando ahí a la app de EPP — el usuario confirmó que quiere que
+`localhost:3000` muestre directamente el detector de patentes. La app de EPP no se borra:
+se mueve a `/epp` (ruta separada), para no perder ese trabajo ya probado. Esto ya se
+implementó (`web/app/page.tsx` → `web/app/epp/page.tsx`, más el ajuste del e2e de Playwright
+y del redirect legacy de `/jobs/[id]`).
 
 ## Objetivo
 
-Una página `/patente` con 3 partes y **2 botones independientes**, uno por acción (no un
+Una página en `/` (raíz) con 3 partes y **2 botones independientes**, uno por acción (no un
 único "Analizar" que corre todo el pipeline de una):
 
 1. **Foto original** del auto — siempre visible, sin botón.
@@ -34,7 +38,7 @@ Una página `/patente` con 3 partes y **2 botones independientes**, uno por acci
   reconocimiento de texto — OCR — no control de acceso).
 - Múltiples patentes en una misma foto (se toma la detección de mayor confianza).
 - Cámara en vivo / video.
-- Reemplazar o tocar la app de EPP existente.
+- Borrar la app de EPP (se conserva funcional en `/epp`).
 
 ## Arquitectura
 
@@ -42,7 +46,7 @@ Sin cola de jobs ni worker en background — a diferencia de la app de EPP, esto
 imagen y no necesita procesamiento asíncrono:
 
 ```
-Browser (/patente)
+Browser (/)
 
   → click "Reconocer patente"  (parte 2)
   → POST /api/plate/detect
@@ -135,7 +139,8 @@ Casos reales para una sola imagen fija (sin sobre-diseñar para casos que no van
 ## Entorno de desarrollo (cómo se corre)
 
 ```bash
-cd web && npm run dev     # Next.js en localhost:3000 — /patente
+cd web && npm run dev     # Next.js en localhost:3000 — detector de patentes en '/'
+# la app de EPP (video) sigue disponible en localhost:3000/epp
 # Ollama debe estar corriendo localmente (ya lo está) con acceso a gemma4:31b-cloud
 ```
 
