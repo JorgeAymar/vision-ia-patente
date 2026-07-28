@@ -50,10 +50,8 @@ Browser (/)
   → click "Reconocer patente"  (parte 2)
   → POST /api/plate/detect
        Next.js invoca un subproceso: `python worker/detect_plate.py <ruta imagen>`
-         - carga YOLOE (yoloe-11s-seg.pt, ya usado en la app de EPP), clase de texto
-           "license plate", umbral de confianza inicial 0.12 (mismo valor que
-           `CONF_THRESHOLD` en `worker/model.py` — punto de partida, se ajusta con el
-           resultado real sobre `automovil.png`)
+         - carga YOLOE (yoloe-26s-seg.pt — ver nota abajo), clase de texto
+           "license plate", umbral de confianza 0.02 (ajustado con datos reales, ver nota)
          - toma la detección de mayor confianza
          - recorta el bbox con 15% de margen en cada lado (para no cortar el borde de la
            patente) y devuelve por stdout:
@@ -79,13 +77,20 @@ costo (~1-3s de carga del modelo por click) es aceptable para una demo de un sol
 en la práctica se siente lento, se puede migrar a un servicio Python persistente (FastAPI)
 que mantenga el modelo cargado; no se hace ahora porque no hay evidencia de que haga falta.
 
-**Por qué YOLOE zero-shot y no un modelo ANPR dedicado:** reusa el mismo peso ya validado
-en este repo (`yoloe-11s-seg.pt`) sin agregar una dependencia nueva. Si el recall en la
-prueba real con `automovil.png` es malo, se compara contra YOLO26 (`yoloe-26s-seg.pt`, ya
-descargado) o un modelo ANPR dedicado — no se decide de antemano sin datos. (Nota: YOLO26
-ya se descartó para la clase "safety helmet" en la app de EPP porque nunca cruzaba el
-umbral de confianza; ese resultado es de una clase distinta y no se traslada
-automáticamente a "license plate" — se vuelve a evaluar acá si hace falta.)
+**Por qué YOLOE zero-shot y no un modelo ANPR dedicado:** reusa un peso ya presente en este
+repo sin agregar una dependencia nueva.
+
+**Nota — modelo y umbral corregidos con datos reales (post-v1):** el diseño original elegía
+`yoloe-11s-seg.pt` con umbral 0.12 (el mismo valor que "safety helmet" en la app de EPP,
+donde YOLO26 había salido peor — pero es una clase de texto distinta en un modelo
+zero-shot, ese resultado no se traslada automáticamente). En uso real con fotos de
+usuarios (no solo `automovil.png`), aparecieron dos patentes reales que quedaban por debajo
+del umbral: confianza 0.117 en una foto de calle normal, y 0.023 en una foto chica
+(399×501px) de un auto no en primer plano. Comparando `yoloe-11s-seg.pt` contra
+`yoloe-26s-seg.pt` en esas mismas fotos, YOLO26 ganó confianza en todos los casos
+(0.176→0.234 en la foto original, 0.023→0.031 en la más difícil) y devolvió muchos menos
+candidatos falsos por imagen. Se cambió a `yoloe-26s-seg.pt` con umbral 0.02, verificado
+end-to-end contra las fotos reales que fallaban.
 
 **Por qué la llamada a Ollama va directo desde Next.js y no pasa por Python:** el modelo
 `kimi-k2.6:cloud` corre en la nube de Ollama pero se llama a través del daemon local
