@@ -64,7 +64,7 @@ export default function PatentePage() {
       <div style={{ display: 'flex', gap: '1rem', margin: '1.5rem 0' }}>
         <button
           onClick={handleDetect}
-          disabled={detecting}
+          disabled={detecting || reading}
           style={{
             fontSize: '1.1rem',
             padding: '0.9rem 1.6rem',
