@@ -10,18 +10,21 @@ from ultralytics import YOLOE
 from plate_geometry import expand_bbox_with_margin, select_best_detection
 
 CLASSES = ["license plate"]
-# 0.12 (el punto de partida, copiado de la clase "safety helmet" de la app de
-# EPP) descartaba patentes reales por un margen mínimo en fotos que no son
-# primer plano: en una foto de calle normal, la patente real salió con
-# confianza 0.117 (verificado recortando esa caja y viendo la patente a ojo),
-# separada por un orden de magnitud del siguiente candidato (0.014) — así que
-# bajar el piso no mete ruido, solo deja de cortar detecciones reales.
-CONF_THRESHOLD = 0.10
+# yoloe-11s-seg.pt vs yoloe-26s-seg.pt para la clase "license plate" (NO es el
+# mismo resultado que para "safety helmet" en la app de EPP, donde YOLO26 salió
+# peor — son clases de texto distintas en un modelo zero-shot, cada una se mide
+# por separado). Comparado en 2 fotos reales:
+#   auto original (primer plano):  yolo11 0.176  vs  yolo26 0.234
+#   foto de auto difícil (chica, no primer plano): yolo11 0.023  vs  yolo26 0.031
+# YOLO26 ganó confianza en ambos casos y además devolvió muchísimo menos ruido
+# (1-2 candidatos totales vs 5+ de YOLO11 en la misma imagen), así que se usa
+# YOLO26 acá.
+CONF_THRESHOLD = 0.02
 MARGIN_PCT = 0.15
 
 
 def get_model():
-    model = YOLOE("yoloe-11s-seg.pt")
+    model = YOLOE("yoloe-26s-seg.pt")
     model.set_classes(CLASSES, model.get_text_pe(CLASSES))
     return model
 
