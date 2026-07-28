@@ -10,7 +10,13 @@ from ultralytics import YOLOE
 from plate_geometry import expand_bbox_with_margin, select_best_detection
 
 CLASSES = ["license plate"]
-CONF_THRESHOLD = 0.12
+# 0.12 (el punto de partida, copiado de la clase "safety helmet" de la app de
+# EPP) descartaba patentes reales por un margen mínimo en fotos que no son
+# primer plano: en una foto de calle normal, la patente real salió con
+# confianza 0.117 (verificado recortando esa caja y viendo la patente a ojo),
+# separada por un orden de magnitud del siguiente candidato (0.014) — así que
+# bajar el piso no mete ruido, solo deja de cortar detecciones reales.
+CONF_THRESHOLD = 0.10
 MARGIN_PCT = 0.15
 
 
