@@ -15,14 +15,15 @@ del mismo proyecto Next.js.
 
 ## Objetivo
 
-Una página `/patente` con 3 partes:
+Una página `/patente` con 3 partes y **2 botones independientes**, uno por acción (no un
+único "Analizar" que corre todo el pipeline de una):
 
-1. **Foto original** del auto.
-2. **Zona de la patente** detectada sobre esa foto.
-3. **Texto de la patente** extraído de esa zona.
-
-El usuario aprieta "Analizar" y ve las 3 partes completarse con el resultado real del
-pipeline.
+1. **Foto original** del auto — siempre visible, sin botón.
+2. **Zona de la patente recortada** — botón "Reconocer patente" que detecta la zona con
+   YOLOE y genera una imagen nueva (el recorte), que se muestra en esta sección.
+3. **Texto de la patente** — botón "Leer texto", al lado del anterior, que toma la imagen
+   recortada de la parte 2 y la manda a Ollama para extraer el texto. Deshabilitado hasta
+   que la parte 2 haya generado un recorte.
 
 ## Fuera de alcance (v1)
 
@@ -42,25 +43,30 @@ imagen y no necesita procesamiento asíncrono:
 
 ```
 Browser (/patente)
-  → click "Analizar"
-  → POST /api/plate/analyze
-       1. Next.js invoca un subproceso: `python worker/detect_plate.py <ruta imagen>`
-            - carga YOLOE (yoloe-11s-seg.pt, ya usado en la app de EPP), clase de texto
-              "license plate", umbral de confianza inicial 0.12 (mismo valor que
-              `CONF_THRESHOLD` en `worker/model.py` — punto de partida, se ajusta con el
-              resultado real sobre `automovil.png`)
-            - toma la detección de mayor confianza
-            - recorta el bbox con 15% de margen en cada lado (para no cortar el borde de
-              la patente) y devuelve por stdout:
-              { bbox: [x1,y1,x2,y2], confidence, croppedImageBase64 }
-            - si no hay ninguna detección, devuelve { error: "no_plate_detected" }
-       2. Si hubo detección, Next.js llama a Ollama:
-            POST http://localhost:11434/api/generate
-            { model: "gemma4:31b-cloud", images: [croppedImageBase64], prompt: ... }
-            pidiendo únicamente el texto de la patente.
-       3. Next.js responde al browser:
-            { bbox, croppedImageBase64, plateText } | { error }
-  → la UI pinta las 3 partes con ese resultado
+
+  → click "Reconocer patente"  (parte 2)
+  → POST /api/plate/detect
+       Next.js invoca un subproceso: `python worker/detect_plate.py <ruta imagen>`
+         - carga YOLOE (yoloe-11s-seg.pt, ya usado en la app de EPP), clase de texto
+           "license plate", umbral de confianza inicial 0.12 (mismo valor que
+           `CONF_THRESHOLD` en `worker/model.py` — punto de partida, se ajusta con el
+           resultado real sobre `automovil.png`)
+         - toma la detección de mayor confianza
+         - recorta el bbox con 15% de margen en cada lado (para no cortar el borde de la
+           patente) y devuelve por stdout:
+           { bbox: [x1,y1,x2,y2], confidence, croppedImageBase64 }
+         - si no hay ninguna detección, devuelve { error: "no_plate_detected" }
+  → Next.js responde al browser: { bbox, confidence, croppedImageBase64 } | { error }
+  → la UI pinta la parte 2 con la imagen recortada (croppedImageBase64)
+
+  → click "Leer texto"  (parte 3, habilitado solo si la parte 2 generó un recorte)
+  → POST /api/plate/ocr  con body { croppedImageBase64 }
+       Next.js llama a Ollama:
+         POST http://localhost:11434/api/generate
+         { model: "gemma4:31b-cloud", images: [croppedImageBase64], prompt: ... }
+         pidiendo únicamente el texto de la patente.
+  → Next.js responde al browser: { plateText } | { error }
+  → la UI pinta la parte 3 con el texto leído
 ```
 
 **Por qué subproceso bajo demanda y no un worker persistente (como en la app de EPP):**
@@ -83,40 +89,48 @@ automáticamente a "license plate" — se vuelve a evaluar acá si hace falta.)
 (`localhost:11434`), que expone una API HTTP estándar con soporte de `images` en base64.
 No hay necesidad de Python para esta parte — `fetch` nativo de Next.js alcanza.
 
-## UI — 3 partes en una sola página
+## UI — 3 partes y 2 botones en una sola página
 
 - **Parte 1 — Foto original:** `automovil.png` servido como asset estático
-  (`web/public/automovil.png`), visible siempre, sin esperar el análisis (mismo criterio
-  que la app de EPP: mostrar el original apenas está disponible).
-- **Parte 2 — Zona detectada:** la foto original con el bbox de la patente dibujado
-  encima (overlay posicionado en % sobre la imagen a partir de `bbox` y las dimensiones
-  naturales de la imagen — sin canvas).
-- **Parte 3 — Texto extraído:** el texto de `plateText` en un bloque simple tipo
-  resultado.
+  (`web/public/automovil.png`), visible siempre, sin botón ni espera.
+- **Parte 2 — Zona recortada:** botón **"Reconocer patente"**. Al apretarlo, llama a
+  `/api/plate/detect` y muestra la imagen recortada que devuelve (`croppedImageBase64`,
+  renderizada como `data:image/...;base64,...`) — es una imagen nueva generada por el
+  recorte, no un overlay sobre el original.
+- **Parte 3 — Texto extraído:** botón **"Leer texto"**, ubicado al lado del botón de la
+  parte 2. Deshabilitado hasta que la parte 2 tenga un recorte válido (sin error). Al
+  apretarlo, llama a `/api/plate/ocr` con ese recorte y muestra el `plateText` devuelto.
 
-Antes de apretar "Analizar", las partes 2 y 3 quedan vacías/placeholder — mismo patrón que
-"no mostrar resultado hasta que se aprieta Analizar" ya usado en la app de EPP.
+Los dos botones viven juntos en una barra de acciones, uno al lado del otro. Antes de
+apretar cada botón, su parte correspondiente queda vacía/placeholder — mismo patrón que
+"no mostrar resultado hasta que se aprieta el botón" ya usado en la app de EPP.
 
 ## Manejo de errores
 
 Casos reales para una sola imagen fija (sin sobre-diseñar para casos que no van a pasar):
 
-- **YOLOE no detecta ninguna patente:** el API route responde 200 con
+- **YOLOE no detecta ninguna patente:** `/api/plate/detect` responde 200 con
   `{ error: "no_plate_detected" }`; la UI muestra "no se detectó una patente" en la parte 2
-  y no llama a Ollama.
-- **Ollama no responde** (servicio no corriendo, o modelo cloud sin autenticación): error
-  controlado; la UI sigue mostrando el bbox de la parte 2, y en la parte 3 un mensaje de
-  error explícito (no un spinner infinito).
+  y el botón "Leer texto" queda deshabilitado (no hay recorte que mandar a Ollama).
+- **Ollama no responde** (servicio no corriendo, o modelo cloud sin autenticación):
+  `/api/plate/ocr` responde con `{ error }`; la UI muestra ese error en la parte 3, sin
+  afectar el recorte ya mostrado en la parte 2 (no hace falta repetir la detección).
 
 ## Testing
 
-- Test unitario puro (sin red) en `web/lib` para la conversión bbox → porcentajes de
-  overlay, siguiendo el patrón ya existente de `web/lib/*.test.ts` con Vitest.
-- Criterio de aceptación manual: correr el pipeline completo contra `automovil.png` desde
-  la UI y confirmar que el bbox cae sobre la patente real y que el texto leído coincide con
-  la patente visible en la foto — igual que el plan de pruebas de la app de EPP (correrlo y
-  verificar que el resultado tenga sentido), no un test automatizado end-to-end porque
-  depende de red y de modelos externos (Ollama cloud).
+- Tests unitarios puros (sin red) en `web/lib`, siguiendo el patrón ya existente de
+  `web/lib/*.test.ts` con Vitest: parseo de la salida de `detect_plate.py` (éxito, error,
+  JSON con forma inválida) y armado/parseo de la request-response con Ollama (body con la
+  imagen y `stream: false`, extracción de `plateText` desde la respuesta).
+- Tests unitarios puros en `worker/tests` (pytest, sin cargar el modelo real), siguiendo el
+  patrón de `worker/tests/test_detector.py`: selección de la detección de mayor confianza y
+  cálculo del bbox expandido con margen.
+- Criterio de aceptación manual: desde la UI, apretar "Reconocer patente" contra
+  `automovil.png` y confirmar que el recorte muestra la patente real; luego apretar "Leer
+  texto" y confirmar que el texto coincide con la patente visible en la foto — igual que el
+  plan de pruebas de la app de EPP (correrlo y verificar que el resultado tenga sentido), no
+  un test automatizado end-to-end porque depende de red y de modelos externos (Ollama
+  cloud).
 
 ## Entorno de desarrollo (cómo se corre)
 
