@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 type DetectResult =
   | { bbox: [number, number, number, number]; confidence: number; croppedImageBase64: string }
@@ -15,9 +15,32 @@ export default function PatentePage() {
   const [detectResult, setDetectResult] = useState<DetectResult | null>(null);
   const [reading, setReading] = useState(false);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const crop =
     detectResult && !('error' in detectResult) ? detectResult : null;
+
+  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/api/plate/upload', { method: 'POST', body: formData });
+      if (response.ok) {
+        setImageVersion((v) => v + 1);
+        setDetectResult(null);
+        setOcrResult(null);
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleDetect() {
     setDetecting(true);
@@ -96,8 +119,26 @@ export default function PatentePage() {
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
         <section>
           <h2 style={{ marginBottom: '0.75rem' }}>1. Foto original</h2>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleUpload}
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{ padding: '0.5rem 1rem', marginBottom: '0.75rem' }}
+          >
+            {uploading ? 'Cargando...' : 'Cargar imagen'}
+          </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={IMAGE_SRC} alt="Auto" style={{ maxHeight: 420, display: 'block' }} />
+          <img
+            src={`${IMAGE_SRC}?v=${imageVersion}`}
+            alt="Auto"
+            style={{ maxHeight: 420, display: 'block' }}
+          />
         </section>
 
         <section>
