@@ -31,7 +31,6 @@ Una página en `/` (raíz) con 3 partes y **2 botones independientes**, uno por 
 
 ## Fuera de alcance (v1)
 
-- Subir una foto propia (se usa `automovil.png`, ya presente en el repo, como imagen fija).
 - Persistencia en Postgres / historial de análisis (stateless: cada click corre el
   pipeline completo y solo se muestra en pantalla).
 - Comparar la patente leída contra una lista de patentes conocidas/autorizadas (es
@@ -100,10 +99,18 @@ con una imagen real de 1x1 píxel, aislado del código propio). `kimi-k2.6:cloud
 reporta `vision` y sí funciona — verificado end-to-end contra el recorte real de
 `automovil.png`, devolviendo el texto correcto ("SL BL 18") limpio en el campo `response`.
 
+**Nota — carga de imagen agregada post-v1:** se agregó un botón "Cargar imagen" en la parte
+1 (`POST /api/plate/upload`, `web/lib/plateImage.ts`) que sobrescribe
+`web/public/automovil.png` con el archivo subido — la ruta sigue siendo fija, así que
+`/api/plate/detect` y `detect_plate.py` no cambiaron. Subir una imagen nueva limpia las
+partes 2 y 3 (el recorte/texto viejo ya no corresponde a la foto mostrada) y fuerza al
+`<img>` a recargar con un query param de cache-busting.
+
 ## UI — 3 partes y 2 botones en una sola página
 
 - **Parte 1 — Foto original:** `automovil.png` servido como asset estático
-  (`web/public/automovil.png`), visible siempre, sin botón ni espera.
+  (`web/public/automovil.png`), visible siempre, sin botón ni espera para verla. Tiene un
+  botón "Cargar imagen" para reemplazarla por una foto propia (ver nota arriba).
 - **Parte 2 — Zona recortada:** botón **"Reconocer patente"**. Al apretarlo, llama a
   `/api/plate/detect` y muestra la imagen recortada que devuelve (`croppedImageBase64`,
   renderizada como `data:image/...;base64,...`) — es una imagen nueva generada por el
