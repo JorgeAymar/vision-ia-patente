@@ -7,7 +7,7 @@ test.describe('Página principal', () => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
 
-    await page.goto('/');
+    await page.goto('/epp');
 
     await expect(page.getByRole('heading', { name: 'Detección de EPP en video' })).toBeVisible();
     await expect(page.getByText('Perforación de pozos de petróleo.mp4')).toBeVisible();
@@ -18,7 +18,7 @@ test.describe('Página principal', () => {
     const consoleMessages: string[] = [];
     page.on('console', (msg) => consoleMessages.push(msg.text()));
 
-    await page.goto('/');
+    await page.goto('/epp');
     await page.waitForTimeout(1000);
 
     const hydrationWarning = consoleMessages.find((m) => m.toLowerCase().includes('hydrat'));
@@ -28,7 +28,7 @@ test.describe('Página principal', () => {
 
 test.describe('Selección de video y layout de resultados', () => {
   test('seleccionar un video muestra el resultado en la misma pantalla (sin navegar a otra URL)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/epp');
 
     const left = page.getByRole('heading', { name: 'Video original' });
     const right = page.getByRole('heading', { name: 'Resultado del análisis' });
@@ -46,7 +46,7 @@ test.describe('Selección de video y layout de resultados', () => {
     await page.getByRole('button', { name: 'Analizar' }).click();
 
     // seguimos en la misma pantalla, no navegamos a otra URL
-    expect(page.url()).toBe('http://localhost:3000/');
+    expect(page.url()).toBe('http://localhost:3000/epp');
     // la lista de videos sigue visible junto con el resultado
     await expect(page.getByText('Perforación de pozos de petróleo.mp4')).toBeVisible();
 
