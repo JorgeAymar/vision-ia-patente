@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requestPlateText } from '@/lib/ollamaPlateOcr';
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Body inválido' }, { status: 400 });
+  }
+
   const croppedImageBase64 = body?.croppedImageBase64;
 
   if (typeof croppedImageBase64 !== 'string' || croppedImageBase64.length === 0) {
