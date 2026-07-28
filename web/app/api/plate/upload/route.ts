@@ -9,6 +9,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Falta una imagen válida' }, { status: 400 });
   }
 
-  await saveUploadedPlateImage(file);
+  try {
+    await saveUploadedPlateImage(file);
+  } catch {
+    return NextResponse.json({ error: 'El archivo no es un PNG válido' }, { status: 400 });
+  }
+
   return NextResponse.json({ ok: true });
 }

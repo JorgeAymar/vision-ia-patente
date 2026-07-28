@@ -10,12 +10,34 @@ type OcrResult = { plateText: string } | { error: string };
 
 const IMAGE_SRC = '/automovil.png';
 
+// El servidor solo acepta bytes PNG genuinos (valida la firma del archivo), así
+// que cualquier foto se redibuja en un canvas y se exporta como PNG real acá
+// antes de subirla — así funciona con JPEG, WebP, etc. sin que el servidor la
+// rechace ni quede un archivo mal etiquetado (bytes JPEG dentro de un .png).
+async function convertToPngBlob(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('No se pudo preparar el canvas');
+  ctx.drawImage(bitmap, 0, 0);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('No se pudo convertir la imagen a PNG'));
+    }, 'image/png');
+  });
+}
+
 export default function PatentePage() {
   const [detecting, setDetecting] = useState(false);
   const [detectResult, setDetectResult] = useState<DetectResult | null>(null);
   const [reading, setReading] = useState(false);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [imageVersion, setImageVersion] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -28,15 +50,22 @@ export default function PatentePage() {
     if (!file) return;
 
     setUploading(true);
+    setUploadError(null);
     try {
+      const pngBlob = await convertToPngBlob(file);
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', pngBlob, 'automovil.png');
       const response = await fetch('/api/plate/upload', { method: 'POST', body: formData });
       if (response.ok) {
         setImageVersion((v) => v + 1);
         setDetectResult(null);
         setOcrResult(null);
+      } else {
+        const data = await response.json();
+        setUploadError(data?.error ?? 'No se pudo subir la imagen');
       }
+    } catch {
+      setUploadError('No se pudo subir la imagen');
     } finally {
       setUploading(false);
     }
@@ -133,6 +162,7 @@ export default function PatentePage() {
           >
             {uploading ? 'Cargando...' : 'Cargar imagen'}
           </button>
+          {uploadError && <p style={{ color: 'red', margin: '0 0 0.75rem' }}>{uploadError}</p>}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`${IMAGE_SRC}?v=${imageVersion}`}
