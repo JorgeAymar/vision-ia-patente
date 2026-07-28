@@ -1,5 +1,9 @@
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
-const OLLAMA_MODEL = 'gemma4:31b-cloud';
+// gemma4:31b-cloud anuncia capacidad "vision" (`ollama show`) pero devuelve 500
+// para cualquier request con `images` (probado con una imagen de 1x1 real);
+// kimi-k2.6:cloud sí procesa imágenes correctamente — confirmado end-to-end
+// contra el recorte real de una patente durante la verificación manual.
+const OLLAMA_MODEL = 'kimi-k2.6:cloud';
 const OCR_PROMPT =
   'Esta imagen es el recorte de la patente de un auto. Respondé ÚNICAMENTE con el texto/números de la patente, sin explicación ni puntuación adicional. Si no se puede leer con certeza, respondé exactamente: ILEGIBLE';
 

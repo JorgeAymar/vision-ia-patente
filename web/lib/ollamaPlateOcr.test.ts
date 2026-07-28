@@ -6,7 +6,7 @@ describe('buildOllamaRequestBody', () => {
     const body = buildOllamaRequestBody('BASE64DATA');
     expect(body.images).toEqual(['BASE64DATA']);
     expect(body.stream).toBe(false);
-    expect(body.model).toBe('gemma4:31b-cloud');
+    expect(body.model).toBe('kimi-k2.6:cloud');
   });
 });
 
